@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.geworkbench.org/service/msviper"
+        xmlns:tns="http://www.geworkbench.org/service/msviper"
+        xmlns:xmime="http://www.w3.org/2005/05/xmlmime" elementFormDefault="qualified">
+
+    <element name="MsViperRequest" type="tns:MsViperInput"/>
+
+    <element name="MsViperResponse" type="tns:MsViperOutput"/>
+
+    <complexType name="MsViperInput">
+        <sequence> 
+            <element name="datasetName" type="string"/>           
+            <element name="expFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+            <element name="phenotypesFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+            <element name="adjFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>  
+            <element name="context" type="string"/>
+            <element name="caseGroups" type="string"/>
+            <element name="controlGroups" type="string"/>
+            <element name="networkFileName" type="string"/>
+            <element name="gesFilter" type="string"/>
+            <element name="minAllowedRegulonSize" type="string"/>
+            <element name="bootstrapping" type="string"/>
+            <element name="method" type="string"/>
+            <element name="shadow" type="string"/>      
+            <element name="shadowValue" type="string"/>
+        </sequence>
+    </complexType>
+
+    <complexType name="MsViperOutput">
+        <sequence>
+             <element name="log" type="string"/>
+             <element name="resultName" type="string"/>
+             <element name="resultFile"  type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+             <element name="signatureFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+               <element name="mrsSignatureFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+             <element name="ledgesFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+             <element name="mrsFile"  type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+             <element name="regulonsFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+             <element name="shadowPairFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+        </sequence>
+    </complexType>
+
+</schema>
