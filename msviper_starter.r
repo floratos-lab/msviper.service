@@ -20,7 +20,6 @@ if (!is.na(userLib))  .libPaths(userLib)
 library(viper)
 
 exprs <- as.matrix(read.table(exprsFile, header=TRUE, sep="\t", row.names=1, as.is=FALSE, check.names=FALSE))
-minimalSet <- ExpressionSet(assayData=exprs)
 pData <- read.table(phenoFile, row.names=1, header=TRUE, sep="\t")
 all(rownames(pData)==colnames(exprs))
 metadata <- data.frame(labelDescription=context)
@@ -92,4 +91,4 @@ else
 }
 
 
-print("complete msviper process.")
+print("completed msviper process.")
