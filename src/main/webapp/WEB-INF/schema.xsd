@@ -36,6 +36,7 @@
              <element name="ledgesFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
              <element name="mrsFile"  type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
              <element name="regulonsFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
+              <element name="shadowResultFile"  type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
              <element name="shadowPairFile" type="base64Binary" xmime:expectedContentTypes="application/octet-stream"/>
         </sequence>
     </complexType>

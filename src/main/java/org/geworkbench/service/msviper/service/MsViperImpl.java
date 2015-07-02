@@ -14,7 +14,7 @@ import java.io.PrintWriter;
 import java.rmi.RemoteException;
 import java.util.Random;
 
-import javax.activation.DataHandler; 
+import javax.activation.DataHandler;
 import javax.activation.FileDataSource;
 
 import org.apache.commons.logging.Log;
@@ -26,12 +26,11 @@ public class MsViperImpl implements MsViper {
 
 	private static final Log logger = LogFactory.getLog(MsViperImpl.class);
 
-	
 	private static final String maxmem = "4G";
 	private static final String timeout = "48::";
 	private String submitBase = "#!/bin/bash\n#$ -l mem=" + maxmem + ",time="
 			+ timeout + " -cwd -j y -o ";
-	
+
 	private static final String VIPERROOT = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/runs/";
 	private static final String scriptDir = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/scripts/";
 	private static final String rscript = "/nfs/apps/R/3.1.2/bin/Rscript";
@@ -39,15 +38,16 @@ public class MsViperImpl implements MsViper {
 	private static final String account = "cagrid";
 	private static final String submitSh = "msviper_submit.sh";
 	private static final String viperR = "msviper_starter.r";
-	private static final String logExt = ".log"; // msviper log file
+	private static final String logExt = ".log"; // msviper log  file
 	private static final String serverRLibPath = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/R/hpc";
-	private static final String resultFileName = "result.txt";  
-	private static final String ledgesFileName = "ledges.txt";  
-	private static final String signatureFileName = "signature.txt";  
-	private static final String mrsSignatureFileName = "mrsSignature.txt";  
-	private static final String mrsFileName = "masterRegulons.txt";  
-	private static final String regulonsFileName = "regulons.txt";  
-	private static final String shadowPairFileName = "shadowPair.txt";  
+	private static final String resultFileName = "result.txt";
+	private static final String ledgesFileName = "ledges.txt";
+	private static final String signatureFileName = "signature.txt";
+	private static final String mrsSignatureFileName = "mrsSignature.txt";
+	private static final String mrsFileName = "masterRegulons.txt";
+	private static final String regulonsFileName = "regulons.txt";
+	private static final String shadowResultFileName = "shadowResult.txt";
+	private static final String shadowPairFileName = "shadowPair.txt";
 	private static final long POLL_INTERVAL = 20000; // 20 seconds
 	private static final Random random = new Random();
 
@@ -69,11 +69,12 @@ public class MsViperImpl implements MsViper {
 		return dataDir;
 	}
 
-	 /*TODO: After totally testing, signature file maybe need to be remove*/
-	public MsViperOutput execute(MsViperInput input, String dataDir) throws IOException {
-		
+	/* TODO: After totally testing, signature file maybe need to be removed  */
+	public MsViperOutput execute(MsViperInput input, String dataDir)
+			throws IOException {
+
 		StringBuilder log = new StringBuilder();
-		MsViperOutput  output = new MsViperOutput();
+		MsViperOutput output = new MsViperOutput();
 		String name = input.getDatasetName();
 		String runid = new File(dataDir).getName();
 		String prefix = name.substring(0, name.lastIndexOf("."));
@@ -84,13 +85,12 @@ public class MsViperImpl implements MsViper {
 			sValue = new Float(shadowValue);
 		}
 
-		 if (dataDir == null)
-		 {
-			 log.append("Cannot find data dir to store viper input");
-			 output.setLog(log.toString());
-			 return output;
-		 }
-		
+		if (dataDir == null) {
+			log.append("Cannot find data dir to store viper input");
+			output.setLog(log.toString());
+			return output;
+		}
+
 		String submitStr = submitBase + dataDir + logfname + " -N " + runid
 				+ "\n" + rscript + " " + scriptDir + viperR + " " + dataDir
 				+ " " + input.getDatasetName() + " "
@@ -120,11 +120,10 @@ public class MsViperImpl implements MsViper {
 			String msg = "Viper job " + runid + " submission error\n";
 			logger.error(msg);
 			log.append(msg);
-			 output.setLog(log.toString());
-			 return output;
+			output.setLog(log.toString());
+			return output;
 		}
 
-	 
 		while (!isJobDone(runid)) {
 			try {
 				Thread.sleep(POLL_INTERVAL);
@@ -132,87 +131,68 @@ public class MsViperImpl implements MsViper {
 			}
 		}
 
-		 
 		logger.info("Sending msviper output " + name);
- 
-		if (input.getShadow().equals("TRUE"))
-		{	
-			String resultFname = dataDir + resultFileName;
-			File resultFile = new File(resultFname);		 
+
+		String resultFname = dataDir + resultFileName;
+		File resultFile = new File(resultFname);
+		String ledgesFname = dataDir + ledgesFileName;
+		File ledgeFile = new File(ledgesFname);
+		String signatureFname = dataDir + signatureFileName;
+		// actually signatureFile is not used in client side, But I would like
+		// to keep here in case it
+		// will be needed.
+		File signatureFile = new File(signatureFname);
+		String mrsSignatureFname = dataDir + mrsSignatureFileName;
+		File mrsSignatureFile = new File(mrsSignatureFname);
+		String mrsFname = dataDir + mrsFileName;
+		File mrsFile = new File(mrsFname);
+		String regulonsFname = dataDir + regulonsFileName;
+		File regulonsFile = new File(regulonsFname);
+
+		if (!resultFile.exists() || !mrsSignatureFile.exists()
+				|| !mrsFile.exists() || !regulonsFile.exists()
+				|| !ledgeFile.exists()) {
+			String err = null;
+			if ((err = runError(logfname)) != null) {
+				String msg = "MsViper job " + runid + " abnormal termination\n"
+						+ err;
+				logger.error(msg);
+				log.append(msg);
+			} else {
+				String msg = "MsViper job " + runid + " was killed";
+				logger.error(msg);
+				log.append(msg);
+			}
+			output.setLog(log.toString());
+			return output;
+		}
+
+		output.setLog(log.toString());
+		output.setResultName(runid);
+		output.setResultFile(new DataHandler(new FileDataSource(resultFile)));
+		output.setLedgesFile(new DataHandler(new FileDataSource(ledgeFile)));
+		output.setSignatureFile(new DataHandler(new FileDataSource(
+				signatureFile)));
+		output.setMrsSignatureFile(new DataHandler(new FileDataSource(
+				mrsSignatureFile)));
+		output.setMrsFile(new DataHandler(new FileDataSource(mrsFile)));
+		output.setRegulonsFile(new DataHandler(new FileDataSource(regulonsFile)));
+
+		if (input.getShadow().equals("TRUE")) {
+			String shadowResultFname = dataDir + shadowResultFileName;
+			File shadowResultFile = new File(shadowResultFname);
 			String shadowPairFname = dataDir + shadowPairFileName;
 			File shadowPairFile = new File(shadowPairFname);
-
-			if (!resultFile.exists()) {
-				String err = null;
-				if ((err = runError(logfname)) != null) {
-					String msg = "MsViper job " + runid
-							+ " abnormal termination\n" + err;
-					logger.error(msg);
-					log.append(msg);
-				} else {
-					String msg = "MsViper job " + runid + " was killed";
-					logger.error(msg);
-					log.append(msg);
-				}
-				 output.setLog(log.toString());
-				 return output;
-			}
-			
-			 
-			output.setLog(log.toString());
-			output.setResultName(runid);
-			output.setResultFile(new DataHandler(new FileDataSource(resultFile)));
-			output.setShadowPairFile(new DataHandler(new FileDataSource(shadowPairFile)));
-		}
-		else
-		{
-			String resultFname = dataDir + resultFileName;
-			File resultFile = new File(resultFname);
-			String ledgesFname = dataDir + ledgesFileName;
-			File ledgeFile = new File(ledgesFname);
-			String signatureFname = dataDir + signatureFileName;
-			//actually signatureFile is not used in client side, But I would like to keep here in case it
-			//will be needed. 
-			File signatureFile = new File(signatureFname);    
-			String mrsSignatureFname = dataDir + mrsSignatureFileName;
-			File mrsSignatureFile = new File(mrsSignatureFname);
-			String mrsFname = dataDir + mrsFileName;
-			File mrsFile = new File(mrsFname);
-			String regulonsFname = dataDir + regulonsFileName;
-			File regulonsFile = new File(regulonsFname);			 
-		 
-			if (!resultFile.exists() || !mrsSignatureFile.exists() || !mrsFile.exists() || !regulonsFile.exists() || !ledgeFile.exists()) {
-				String err = null;
-				if ((err = runError(logfname)) != null) {
-					String msg = "MsViper job " + runid
-							+ " abnormal termination\n" + err;
-					logger.error(msg);
-					log.append(msg);
-				} else {
-					String msg = "MsViper job " + runid + " was killed";
-					logger.error(msg);
-					log.append(msg);
-				}
-				 output.setLog(log.toString());
-				 return output;
-			}		
-			 
-			 output.setLog(log.toString());
-			 output.setResultName(runid);
-			 output.setResultFile(new DataHandler(new FileDataSource(resultFile)));
-			 output.setLedgesFile(new DataHandler(new FileDataSource(ledgeFile)));
-			 output.setSignatureFile(new DataHandler(new FileDataSource(signatureFile)));
-			 output.setMrsSignatureFile(new DataHandler(new FileDataSource(mrsSignatureFile)));
-			 output.setMrsFile(new DataHandler(new FileDataSource(mrsFile)));
-			 output.setRegulonsFile(new DataHandler(new FileDataSource(regulonsFile)));
-			 
+ 
+			output.setShadowResultFile(new DataHandler(new FileDataSource(
+					shadowResultFile)));
+			output.setShadowPairFile(new DataHandler(new FileDataSource(
+					shadowPairFile)));
 		}
 
-		logger.info("Sending MsViper output. ");		 
+		logger.info("Sending MsViper output. ");
 		return output;
 	}
-
-	
 
 	private String getDataDir() {
 		File root = new File(VIPERROOT);
