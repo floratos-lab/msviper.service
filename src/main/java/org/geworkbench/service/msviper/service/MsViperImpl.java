@@ -77,8 +77,8 @@ public class MsViperImpl implements MsViper {
 		MsViperOutput output = new MsViperOutput();
 		String name = input.getDatasetName();
 		String runid = new File(dataDir).getName();
-		String prefix = name.substring(0, name.lastIndexOf("."));
-		String logfname = prefix + logExt;
+		//String prefix = name.substring(0, name.lastIndexOf("."));
+		String logfname = name + logExt;
 		String shadowValue = input.getShadowValue();
 		Float sValue = 25f;
 		if (shadowValue != null) {
