@@ -1,11 +1,9 @@
 package org.geworkbench.service.msviper.service;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -27,11 +25,6 @@ public class MsViperImpl implements MsViper {
 
 	private static final Log logger = LogFactory.getLog(MsViperImpl.class);
 
-	private static final String maxmem = "4G";
-	private static final String timeout = "48::";
-	private String submitBase = "#!/bin/bash\n#$ -l mem=" + maxmem + ",time="
-			+ timeout + " -cwd -j y -o ";
-
 	private static final Properties properties = new Properties();
 	static {
 		try {
@@ -48,8 +41,6 @@ public class MsViperImpl implements MsViper {
 	private static final String scriptDir = VIPER_ROOT + "/scripts/";
 	private static final String rscript = properties.getProperty("r.installation") + "/bin/Rscript";
 	private static final String PHENOTYPE_FILE = "phenotypes.txt";
-	private static final String account = "cagrid";
-	private static final String submitSh = "msviper_submit.sh";
 	private static final String viperR = "msviper_starter.r";
 	private static final String logExt = ".log"; // msviper log file
 	private static final String serverRLibPath = VIPER_ROOT + "/R/hpc";
@@ -61,7 +52,6 @@ public class MsViperImpl implements MsViper {
 	private static final String regulonsFileName = "regulons.txt";
 	private static final String shadowResultFileName = "shadowResult.txt";
 	private static final String shadowPairFileName = "shadowPair.txt";
-	private static final long POLL_INTERVAL = 20000; // 20 seconds
 	private static final Random random = new Random();
 
 	public String storeMsViperInput(MsViperInput input) throws IOException {
@@ -104,8 +94,7 @@ public class MsViperImpl implements MsViper {
 			return output;
 		}
 
-		String submitStr = submitBase + dataDir + logfname + " -N " + runid
-				+ "\n" + rscript + " " + scriptDir + viperR + " " + dataDir
+		String submitStr = rscript + " " + scriptDir + viperR + " " + dataDir
 				+ " " + input.getDatasetName() + " "
 				+ input.getNetworkFileName() + " " + PHENOTYPE_FILE + " "
 				+ input.getContext() + " " + input.getCaseGroups() + " "
@@ -119,29 +108,13 @@ public class MsViperImpl implements MsViper {
 		else
 			submitStr = submitStr + " " + sValue + " " + serverRLibPath;
 
-		String submitFile = dataDir + submitSh;
-		if (!writeToFile(submitFile, submitStr)) {
-			String msg = "Cannot find write viper job submit script";
-			logger.error(msg);
-			log.append(msg);
-			output.setLog(log.toString());
-			return output;
-		}
-
-		int ret = submitJob(submitFile);
+		int ret = submitJob(submitStr, logfname);
 		if (ret != 0) {
 			String msg = "Viper job " + runid + " submission error\n";
 			logger.error(msg);
 			log.append(msg);
 			output.setLog(log.toString());
 			return output;
-		}
-
-		while (!isJobDone(runid)) {
-			try {
-				Thread.sleep(POLL_INTERVAL);
-			} catch (InterruptedException e) {
-			}
 		}
 
 		logger.info("Sending msviper output " + name);
@@ -260,73 +233,19 @@ public class MsViperImpl implements MsViper {
 		}
 	}
 
-	private boolean writeToFile(String fname, String string) {
-		BufferedWriter bw = null;
-		try {
-			bw = new BufferedWriter(new FileWriter(fname));
-			bw.write(string);
-			bw.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		} finally {
-			try {
-				if (bw != null)
-					bw.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return true;
-	}
-
-	private int submitJob(java.lang.String jobfile) {
-		String command = "qsub " + jobfile;
+	private int submitJob(java.lang.String command, String logfilename) {
 		System.out.println(command);
 		try {
 			Process p = Runtime.getRuntime().exec(command);
-			StreamGobbler out = new StreamGobbler(p.getInputStream(), "INPUT");
-			StreamGobbler err = new StreamGobbler(p.getErrorStream(), "ERROR");
+			FileOutputStream logstream = new FileOutputStream(logfilename, true);
+			StreamGobbler out = new StreamGobbler(p.getInputStream(), "INPUT", logstream);
+			StreamGobbler err = new StreamGobbler(p.getErrorStream(), "ERROR", logstream);
 			out.start();
 			err.start();
 			return p.waitFor();
 		} catch (Exception e) {
 			return -1;
 		}
-	}
-
-	private boolean isJobDone(String runid) {
-		String cmd = "qstat -u " + account;
-		BufferedReader brIn = null;
-		BufferedReader brErr = null;
-		try {
-			Process p = Runtime.getRuntime().exec(cmd);
-			brIn = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			brErr = new BufferedReader(
-					new InputStreamReader(p.getErrorStream()));
-			String line = null;
-			while ((line = brIn.readLine()) != null
-					|| (line = brErr.readLine()) != null) {
-				if (line.startsWith("error"))
-					return false; // cluster scheduler error
-				String[] toks = line.trim().split("\\s+");
-				if (toks.length > 3 && toks[2].equals(runid))
-					return false;
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			return true;
-		} finally {
-			try {
-				if (brIn != null)
-					brIn.close();
-				if (brErr != null)
-					brErr.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		return true;
 	}
 
 	private String runError(String logfname) {
