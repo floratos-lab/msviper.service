@@ -33,7 +33,7 @@ public class MsViperImpl implements MsViper {
 			+ timeout + " -cwd -j y -o ";
 
 	private static final Properties properties = new Properties();
-    static {
+	static {
 		try {
 			InputStream reader = MsViperImpl.class.getResourceAsStream("/application.properties");
 			properties.load(reader);
@@ -41,7 +41,7 @@ public class MsViperImpl implements MsViper {
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
-    }
+	}
 
 	private static final String VIPER_ROOT = properties.getProperty("viper.root");
 	private static final String VIPER_RUNS = VIPER_ROOT + "/runs/";
@@ -51,7 +51,7 @@ public class MsViperImpl implements MsViper {
 	private static final String account = "cagrid";
 	private static final String submitSh = "msviper_submit.sh";
 	private static final String viperR = "msviper_starter.r";
-	private static final String logExt = ".log"; // msviper log  file
+	private static final String logExt = ".log"; // msviper log file
 	private static final String serverRLibPath = VIPER_ROOT + "/R/hpc";
 	private static final String resultFileName = "result.txt";
 	private static final String ledgesFileName = "ledges.txt";
@@ -82,7 +82,7 @@ public class MsViperImpl implements MsViper {
 		return dataDir;
 	}
 
-	/* TODO: After totally testing, signature file maybe need to be removed  */
+	/* TODO: After totally testing, signature file maybe need to be removed */
 	public MsViperOutput execute(MsViperInput input, String dataDir)
 			throws IOException {
 
@@ -90,12 +90,12 @@ public class MsViperImpl implements MsViper {
 		MsViperOutput output = new MsViperOutput();
 		String name = input.getDatasetName();
 		String runid = new File(dataDir).getName();
-		//String prefix = name.substring(0, name.lastIndexOf("."));
+		// String prefix = name.substring(0, name.lastIndexOf("."));
 		String logfname = name + logExt;
 		String shadowValue = input.getShadowValue();
 		Float sValue = 25f;
 		if (shadowValue != null) {
-			sValue = new Float(shadowValue);
+			sValue = Float.valueOf(shadowValue);
 		}
 
 		if (dataDir == null) {
@@ -196,7 +196,7 @@ public class MsViperImpl implements MsViper {
 			File shadowResultFile = new File(shadowResultFname);
 			String shadowPairFname = dataDir + shadowPairFileName;
 			File shadowPairFile = new File(shadowPairFname);
- 
+
 			output.setShadowResultFile(new DataHandler(new FileDataSource(
 					shadowResultFile)));
 			output.setShadowPairFile(new DataHandler(new FileDataSource(
