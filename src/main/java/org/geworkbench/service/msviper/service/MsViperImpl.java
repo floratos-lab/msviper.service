@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.rmi.RemoteException;
+import java.util.Properties;
 import java.util.Random;
 
 import javax.activation.DataHandler;
@@ -31,15 +32,27 @@ public class MsViperImpl implements MsViper {
 	private String submitBase = "#!/bin/bash\n#$ -l mem=" + maxmem + ",time="
 			+ timeout + " -cwd -j y -o ";
 
-	private static final String VIPERROOT = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/runs/";
-	private static final String scriptDir = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/scripts/";
-	private static final String rscript = "/nfs/apps/R/3.1.2/bin/Rscript";
+	private static final Properties properties = new Properties();
+    static {
+		try {
+			InputStream reader = MsViperImpl.class.getResourceAsStream("/application.properties");
+			properties.load(reader);
+			reader.close();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+    }
+
+	private static final String VIPER_ROOT = properties.getProperty("viper.root");
+	private static final String VIPER_RUNS = VIPER_ROOT + "/runs/";
+	private static final String scriptDir = VIPER_ROOT + "/scripts/";
+	private static final String rscript = properties.getProperty("r.installation") + "/bin/Rscript";
 	private static final String PHENOTYPE_FILE = "phenotypes.txt";
 	private static final String account = "cagrid";
 	private static final String submitSh = "msviper_submit.sh";
 	private static final String viperR = "msviper_starter.r";
 	private static final String logExt = ".log"; // msviper log  file
-	private static final String serverRLibPath = "/ifs/data/c2b2/af_lab/cagrid/r/msviper/R/hpc";
+	private static final String serverRLibPath = VIPER_ROOT + "/R/hpc";
 	private static final String resultFileName = "result.txt";
 	private static final String ledgesFileName = "ledges.txt";
 	private static final String signatureFileName = "signature.txt";
@@ -195,7 +208,7 @@ public class MsViperImpl implements MsViper {
 	}
 
 	private String getDataDir() {
-		File root = new File(VIPERROOT);
+		File root = new File(VIPER_RUNS);
 		if (!root.exists() && !root.mkdir())
 			return null;
 
@@ -204,7 +217,7 @@ public class MsViperImpl implements MsViper {
 		File randdir = null;
 		try {
 			do {
-				dirname = VIPERROOT + "msvpr" + random.nextInt(Short.MAX_VALUE)
+				dirname = VIPER_RUNS + "msvpr" + random.nextInt(Short.MAX_VALUE)
 						+ "/";
 				randdir = new File(dirname);
 			} while (randdir.exists() && ++i < Short.MAX_VALUE);
