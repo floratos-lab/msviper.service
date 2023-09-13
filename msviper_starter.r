@@ -48,3 +48,42 @@ else
    signature <- rowTtest(dSet, context, cGroups,  ctlGroups)
    signature <- (qnorm(signature$p.value/2, lower.tail = FALSE) * sign(signature$statistic))[, 1]
    
+}
+}
+
+nullmodel <- ttestNull(dSet, context, cGroups, ctlGroups, per = 1000, repos = TRUE, verbose = FALSE)
+mrs <- msviper(signature, regul, nullmodel, minsize = as.numeric(minSize), ges.filter = as.logical(gesFilter=="TRUE"), verbose = FALSE)
+print(mrs)
+print(minSize)
+print(gesFilter)
+
+summary(mrs, length(mrs$regulon))
+
+
+if (bootStrapping == "TRUE")
+{
+   mrs <- bootstrapmsviper(mrs, c(method))
+}
+
+mrs_le <- ledge(mrs)
+
+
+if (class(signature) == "matrix") signature <- rowMeans(signature)   
+write.table(signature, file=paste(runDir, "signature.txt", sep=""), sep = "\t")
+slist <- mrs$signature
+if (ncol(slist)>0) slist <- rowMeans(slist)
+write.table(slist, file=paste(runDir, "mrsSignature.txt", sep=""), sep = "\t")   
+write.table(summary(mrs, length(mrs$regulon)), file=paste(runDir, "result.txt", sep=""), sep="\t")
+write(paste(mrs_le$ledge, sep="\t"), file=paste(runDir, "ledges.txt",sep=""), sep="\t")
+write(names(mrs_le$ledge), file=paste(runDir, "masterRegulons.txt", sep=""), sep="\t")
+write(paste(lapply(mrs$regulon, function(x) {names(x$tfmode)}), sep="\t"), file = paste(runDir, "regulons.txt", sep=""), sep = "\t")  
+
+if ( shadow == "TRUE" )
+{
+   mrshadow <- shadow(mrs, regulators = as.numeric(shadowValue), verbose = FALSE)
+   write.table(summary(mrshadow, length(mrshadow$regulon))$msviper.results, file=paste(runDir, "shadowResult.txt", sep=""), sep="\t")
+   write.table(mrshadow$shadow, file=paste(runDir, "shadowPair.txt", sep=""), sep = "\t")
+}
+
+
+print("complete msviper process.")
