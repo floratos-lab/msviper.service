@@ -10,6 +10,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
@@ -94,21 +97,22 @@ public class MsViperImpl implements MsViper {
 			return output;
 		}
 
-		String submitStr = rscript + " " + scriptDir + viperR + " " + dataDir
-				+ " " + input.getDatasetName() + " "
-				+ input.getNetworkFileName() + " " + PHENOTYPE_FILE + " "
-				+ input.getContext() + " " + input.getCaseGroups() + " "
-				+ input.getControlGroups() + " " + input.getGesFilter() + " "
-				+ input.getMinAllowedRegulonSize() + " "
-				+ input.getBootstrapping() + " " + input.getMethod() + " "
-				+ input.getShadow();
-		if (sValue > 1)
-			submitStr = submitStr + " " + sValue.intValue() + " "
-					+ serverRLibPath;
-		else
-			submitStr = submitStr + " " + sValue + " " + serverRLibPath;
+		List<String> submitStr = new ArrayList<String>(Arrays.asList(rscript, scriptDir + viperR, dataDir,
+				input.getDatasetName(),
+				input.getNetworkFileName(), PHENOTYPE_FILE,
+				input.getContext(), input.getCaseGroups(),
+				input.getControlGroups(), input.getGesFilter(),
+				input.getMinAllowedRegulonSize(),
+				input.getBootstrapping(), input.getMethod(),
+				input.getShadow()));
+		if (sValue > 1) {
+			submitStr.add(Integer.toString(sValue.intValue()));
+		} else {
+			submitStr.add(sValue.toString());
+		}
+		submitStr.add(serverRLibPath);
 
-		int ret = submitJob(submitStr, logfname);
+		int ret = submitJob(submitStr.toArray(new String[0]), logfname);
 		if (ret != 0) {
 			String msg = "Viper job " + runid + " submission error\n";
 			logger.error(msg);
@@ -233,7 +237,7 @@ public class MsViperImpl implements MsViper {
 		}
 	}
 
-	private int submitJob(java.lang.String command, String logfilename) {
+	private int submitJob(java.lang.String[] command, String logfilename) {
 		System.out.println(command);
 		try {
 			Process p = Runtime.getRuntime().exec(command);
