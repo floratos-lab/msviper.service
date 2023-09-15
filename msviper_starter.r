@@ -5,8 +5,8 @@ exprsFile <- paste(runDir, args[2], sep="")
 adjFile <- paste(runDir, args[3], sep="")
 phenoFile <- paste(runDir, args[4], sep="")
 context <- args[5]
-caseGroups <- args[6]
-controlGroups <- args[7]
+caseGroups <- gsub('^"|"$', '', args[6])
+controlGroups <- gsub('^"|"$', '', args[7])
 gesFilter <- args[8]
 minSize <- args[9]
 bootStrapping <- args[10]
