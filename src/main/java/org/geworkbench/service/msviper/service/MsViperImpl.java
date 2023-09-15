@@ -6,9 +6,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,8 +110,13 @@ public class MsViperImpl implements MsViper {
 		}
 		submitStr.add(serverRLibPath);
 
-		int ret = submitJob(submitStr.toArray(new String[0]), logfname);
-		if (ret != 0) {
+		ProcessBuilder pb = new ProcessBuilder(submitStr);
+		pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(logfname)));
+		Process p = pb.start();
+		try {
+			p.waitFor();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 			String msg = "Viper job " + runid + " submission error\n";
 			logger.error(msg);
 			log.append(msg);
@@ -237,21 +240,6 @@ public class MsViperImpl implements MsViper {
 		}
 	}
 
-	private int submitJob(java.lang.String[] command, String logfilename) {
-		System.out.println(command);
-		try {
-			Process p = Runtime.getRuntime().exec(command);
-			FileOutputStream logstream = new FileOutputStream(logfilename, true);
-			StreamGobbler out = new StreamGobbler(p.getInputStream(), "INPUT", logstream);
-			StreamGobbler err = new StreamGobbler(p.getErrorStream(), "ERROR", logstream);
-			out.start();
-			err.start();
-			return p.waitFor();
-		} catch (Exception e) {
-			return -1;
-		}
-	}
-
 	private String runError(String logfname) {
 		StringBuilder str = new StringBuilder();
 		BufferedReader br = null;
@@ -282,51 +270,5 @@ public class MsViperImpl implements MsViper {
 		if (error)
 			return str.toString();
 		return null;
-	}
-
-	public static class StreamGobbler extends Thread {
-		private InputStream is;
-		private String type;
-		private OutputStream os;
-
-		StreamGobbler(InputStream is, String type) {
-			this(is, type, null);
-		}
-
-		StreamGobbler(InputStream is, String type, OutputStream redirect) {
-			this.is = is;
-			this.type = type;
-			this.os = redirect;
-		}
-
-		public void run() {
-			PrintWriter pw = null;
-			BufferedReader br = null;
-			try {
-				if (os != null)
-					pw = new PrintWriter(os, true);
-
-				InputStreamReader isr = new InputStreamReader(is);
-				br = new BufferedReader(isr);
-				String line = null;
-				while ((line = br.readLine()) != null) {
-					if (pw != null) {
-						pw.println(line);
-					}
-					System.out.println(type + ">" + line);
-				}
-			} catch (IOException ioe) {
-				ioe.printStackTrace();
-			} finally {
-				try {
-					if (pw != null)
-						pw.close();
-					if (br != null)
-						br.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
 	}
 }
