@@ -1,9 +1,7 @@
 package org.geworkbench.service.msviper.service;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,7 +41,6 @@ public class MsViperImpl implements MsViper {
 	private static final String rscript = properties.getProperty("r.installation") + "/bin/Rscript";
 	private static final String PHENOTYPE_FILE = "phenotypes.txt";
 	private static final String viperR = "msviper_starter.r";
-	private static final String logExt = ".log"; // msviper log file
 	private static final String serverRLibPath = VIPER_ROOT + "/R/hpc";
 	private static final String resultFileName = "result.txt";
 	private static final String ledgesFileName = "ledges.txt";
@@ -69,7 +66,6 @@ public class MsViperImpl implements MsViper {
 		writeFile(input.getExpFile(), expFname);
 		writeFile(input.getAdjFile(), adjFname);
 		writeFile(input.getPhenotypesFile(), phenoFname);
-		logger.error(expFname);
 		return dataDir;
 	}
 
@@ -77,12 +73,9 @@ public class MsViperImpl implements MsViper {
 	public MsViperOutput execute(MsViperInput input, String dataDir)
 			throws IOException {
 
-		StringBuilder log = new StringBuilder();
 		MsViperOutput output = new MsViperOutput();
 		String name = input.getDatasetName();
 		String runid = new File(dataDir).getName();
-		// String prefix = name.substring(0, name.lastIndexOf("."));
-		String logfname = name + logExt;
 		String shadowValue = input.getShadowValue();
 		Float sValue = 25f;
 		if (shadowValue != null) {
@@ -90,8 +83,7 @@ public class MsViperImpl implements MsViper {
 		}
 
 		if (dataDir == null) {
-			log.append("Cannot find data dir to store viper input");
-			output.setLog(log.toString());
+			output.setLog("Cannot find data dir to store viper input");
 			return output;
 		}
 
@@ -111,7 +103,9 @@ public class MsViperImpl implements MsViper {
 		submitStr.add(serverRLibPath);
 
 		ProcessBuilder pb = new ProcessBuilder(submitStr);
-		pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(logfname)));
+		File logfile = new File(dataDir + name + ".log");
+		pb.redirectOutput(ProcessBuilder.Redirect.appendTo(logfile));
+		pb.redirectError(ProcessBuilder.Redirect.appendTo(logfile));
 		Process p = pb.start();
 		try {
 			p.waitFor();
@@ -119,48 +113,48 @@ public class MsViperImpl implements MsViper {
 			e.printStackTrace();
 			String msg = "Viper job " + runid + " submission error\n";
 			logger.error(msg);
-			log.append(msg);
-			output.setLog(log.toString());
+			output.setLog(msg);
 			return output;
 		}
 
 		logger.info("Sending msviper output " + name);
 
-		String resultFname = dataDir + resultFileName;
-		File resultFile = new File(resultFname);
-		String ledgesFname = dataDir + ledgesFileName;
-		File ledgeFile = new File(ledgesFname);
-		String signatureFname = dataDir + signatureFileName;
+		File resultFile = new File(dataDir + resultFileName);
+		File ledgeFile = new File(dataDir + ledgesFileName);
 		// actually signatureFile is not used in client side, But I would like
 		// to keep here in case it
 		// will be needed.
-		File signatureFile = new File(signatureFname);
-		String mrsSignatureFname = dataDir + mrsSignatureFileName;
-		File mrsSignatureFile = new File(mrsSignatureFname);
-		String mrsFname = dataDir + mrsFileName;
-		File mrsFile = new File(mrsFname);
-		String regulonsFname = dataDir + regulonsFileName;
-		File regulonsFile = new File(regulonsFname);
+		File signatureFile = new File(dataDir + signatureFileName);
+		File mrsSignatureFile = new File(dataDir + mrsSignatureFileName);
+		File mrsFile = new File(dataDir + mrsFileName);
+		File regulonsFile = new File(dataDir + regulonsFileName);
 
 		if (!resultFile.exists() || !mrsSignatureFile.exists()
 				|| !mrsFile.exists() || !regulonsFile.exists()
 				|| !ledgeFile.exists()) {
-			String err = null;
-			if ((err = runError(logfname)) != null) {
-				String msg = "MsViper job " + runid + " abnormal termination\n"
-						+ err;
-				logger.error(msg);
-				log.append(msg);
-			} else {
-				String msg = "MsViper job " + runid + " was killed";
-				logger.error(msg);
-				log.append(msg);
+			StringBuffer msg = new StringBuffer("MsViper job " + runid + " failed:\n");
+			String no = " does not exist\n";
+			if (!resultFile.exists()) {
+				msg.append("  ").append(resultFileName).append(no);
 			}
-			output.setLog(log.toString());
+			if (!mrsSignatureFile.exists()) {
+				msg.append("  ").append(signatureFileName).append(no);
+			}
+			if (!mrsFile.exists()) {
+				msg.append("  ").append(mrsFileName).append(no);
+			}
+			if (!regulonsFile.exists()) {
+				msg.append("  ").append(regulonsFileName).append(no);
+			}
+			if (!ledgeFile.exists()) {
+				msg.append("  ").append(ledgesFileName).append(no);
+			}
+			logger.error(msg);
+			output.setLog(msg.toString());
 			return output;
 		}
 
-		output.setLog(log.toString());
+		output.setLog(""); // succeeded
 		output.setResultName(runid);
 		output.setResultFile(new DataHandler(new FileDataSource(resultFile)));
 		output.setLedgesFile(new DataHandler(new FileDataSource(ledgeFile)));
@@ -238,37 +232,5 @@ public class MsViperImpl implements MsViper {
 				}
 			}
 		}
-	}
-
-	private String runError(String logfname) {
-		StringBuilder str = new StringBuilder();
-		BufferedReader br = null;
-		boolean error = false;
-		File logFile = new File(logfname);
-		if (!logFile.exists())
-			return null;
-		try {
-			br = new BufferedReader(new FileReader(logFile));
-			String line = null;
-			int i = 0;
-			while ((line = br.readLine()) != null) {
-				if (((i = line.indexOf("Error")) > -1)) {
-					str.append(line.substring(i) + "\n");
-					error = true;
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				if (br != null)
-					br.close();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		if (error)
-			return str.toString();
-		return null;
 	}
 }
