@@ -18,3 +18,10 @@ R needs to be installed in the directory specified by `r.installation` in `appli
 `msviper_starter.r` should be placed in a subdirectory called `scripts` under the directory specified by the value of `viper.root` in `application.properties`.
 
 That script depends on R packages installed in a subdirectory called `R/hpc` under `viper.root`. You may need to reinstall some package using BiocManager, e.g. `BiocManager::install("BiocGenerics")` for that libPath.
+
+## use docker to facilitate self-contained deployment
+
+```sh
+docker build -t msviper .
+docker run -d -p 8080:8080 msviper
+```
