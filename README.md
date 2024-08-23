@@ -25,3 +25,4 @@ That script depends on R packages installed in a subdirectory called `R/hpc` und
 docker build -t msviper .
 docker run -d -p 8080:8080 msviper
 ```
+In case of 8080 is already taken on the host, we can use a different port number, say 8081, `docker run -d -p 8081:8080 msviper`.
