@@ -22,7 +22,9 @@ That script depends on R packages installed in a subdirectory called `R/hpc` und
 ## use docker to facilitate self-contained deployment
 
 ```sh
-docker build -t msviper .
-docker run -d -p 8080:8080 msviper
+docker build --build-arg VIPER_ROOT=/some-path/viper-root -t msviper .
+docker run --name msviper-container -d -p 8080:8080 msviper
 ```
 In case of 8080 is already taken on the host, we can use a different port number, say 8081, `docker run -d -p 8081:8080 msviper`.
+
+`VIPER_ROOT` should match the actual value of `viper.root` in `application.properties`.

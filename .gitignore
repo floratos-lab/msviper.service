@@ -1,2 +1,5 @@
 target/*
 application.properties
+
+# this is essential to build the image. not included due to different license/ownership
+R/hpc/*

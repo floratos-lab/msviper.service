@@ -9,11 +9,25 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# this is necessary to install R package httr
+RUN apt-get update
+RUN apt-get install -y libcurl4-openssl-dev \
+    && apt-get install -y libssl-dev
+
 # Copy your web application to the Tomcat webapps directory
 COPY target/msviper-service.war /usr/local/tomcat/webapps/
 
 # Copy your R script to a specific directory
-COPY ./msviper_starter.r /usr/local/bin/msviper_starter.r
+ARG VIPER_ROOT=/viper-root
+COPY ./msviper_starter.r ${VIPER_ROOT}/scripts/
+# Copy supporting R packages (>3000s files, 120 MB)
+COPY ./R/hpc ${VIPER_ROOT}/R/hpc
+RUN Rscript -e 'install.packages("glue")'
+RUN Rscript -e 'install.packages("lifecycle")'
+RUN Rscript -e 'install.packages("R6")'
+RUN Rscript -e 'install.packages("pkgconfig")'
+RUN Rscript -e 'install.packages("fastmap")'
+RUN Rscript -e 'install.packages("httr")'
 
 # Expose the default Tomcat port
 EXPOSE 8080
